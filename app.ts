@@ -21,7 +21,7 @@ import comments from "./routes/comments";
 
 dotenv.config();
 const app = express();
-const port = 3333;
+const port = process.env.PORT || 3333;
 
 app.use(express.json());
 app.use(cors());
