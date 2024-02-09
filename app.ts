@@ -28,7 +28,7 @@ app.use(cors());
 const server = http.createServer(app);
 const io = new SocketServer(server, {
   cors: {
-    origin: "https://codingcapy.github.io/capytalk",
+    origin: "https://codingcapy.github.io",
   },
 });
 io.on("connection", (socket) => {
