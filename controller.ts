@@ -143,11 +143,8 @@ export async function createMessage(req: Request, res: Response) {
     const chatId = req.body.chatId;
     const messages = await Message.find({});
     const messageId = messages.length === 0 ? 1 : messages[messages.length - 1].messageId + 1;
-    await Message.create({ content: inputContent, username: user, messageId });
-    const message = await Message.findOne({ messageId: messageId });
-    const chat = await Chat.findOne({ chatId: parseInt(chatId) });
     try {
-        await Chat.updateOne({ chatId: parseInt(chatId) }, { $push: { messages: message } });
+        await Message.create({ content: inputContent, username: user, chatId: parseInt(chatId), messageId });
         res.status(200).json({ success: true, message: "Message added successfully!" });
     }
     catch (err) {
@@ -155,9 +152,10 @@ export async function createMessage(req: Request, res: Response) {
     }
 }
 
-export function getMessage() {
-
-
+export async function getMessages(req: Request, res: Response) {
+    const chatId = req.params.chatId;
+    const messages = await Message.find({ chatId: parseInt(chatId) })
+    res.json(messages)
 }
 
 export function updateMessage() {

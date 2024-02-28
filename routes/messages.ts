@@ -7,11 +7,11 @@ description: messages route for CapyTalk API server
  */
 
 import express from "express";
-import { createMessage, getMessage, updateMessage } from "../controller";
+import { createMessage, getMessages, updateMessage } from "../controller";
 
 const messages = express.Router();
 
 messages.route('/').post(createMessage);
-messages.route('/:userId').get(getMessage).post(updateMessage);
+messages.route('/:chatId').get(getMessages).post(updateMessage);
 
 export default messages;
