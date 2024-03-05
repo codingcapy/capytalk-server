@@ -63,12 +63,14 @@ export async function createUser(req: Request, res: Response) {
     const userId = users.length === 0 ? 1 : users[users.length - 1].userId + 1;
     const username = req.body.username;
     const password = req.body.password;
+    const email = req.body.email;
+    const displayName = username;
     if (users.find((user: any) => user.username === username.toString())) {
         res.json({ success: false, message: "Username already exists" });
     }
     else {
         const encrypted = await bcrypt.hash(password, saltRounds);
-        const user = await User.create({ username: username, password: encrypted, userId: userId });
+        const user = await User.create({ username: username, password: encrypted, email, displayName, userId: userId });
         res.status(200).json({ success: true, message: "Sign up successful!" });
     }
 }
