@@ -160,9 +160,11 @@ export async function getMessages(req: Request, res: Response) {
     res.json(messages)
 }
 
-export function updateMessage() {
-
-
+export async function updateMessage(req: Request, res: Response) {
+    const messageId = req.params.messageId;
+    const content = req.body.content
+    const message = await Message.findOneAndUpdate({messageId},{content})
+    res.status(200).json({ success: true });
 }
 
 export async function createComment(req: Request, res: Response) {

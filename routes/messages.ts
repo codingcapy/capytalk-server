@@ -12,6 +12,7 @@ import { createMessage, getMessages, updateMessage } from "../controller";
 const messages = express.Router();
 
 messages.route('/').post(createMessage);
-messages.route('/:chatId').get(getMessages).post(updateMessage);
+messages.route('/update/:messageId').post(updateMessage);
+messages.route('/:chatId').get(getMessages);
 
 export default messages;
