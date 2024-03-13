@@ -11,7 +11,6 @@ import mongoose from "mongoose";
 export const ChatSchema = new mongoose.Schema({
     title: { type: String, required: true, default: "New Chat" },
     date: { type: Date, required: true, default: Date.now },
-    users: [String],
     chatId: { type: Number, required: [true, 'chatId is required'] },
 });
 

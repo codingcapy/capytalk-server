@@ -13,6 +13,7 @@ import User from "./models/User";
 import Chat from "./models/Chat";
 import Message from "./models/Message";
 import Comment from "./models/Comment";
+import UserChat from "./models/UserChat";
 
 const saltRounds = 6;
 
@@ -114,18 +115,30 @@ export async function getUser(req: Request, res: Response) {
 }
 
 export async function createChat(req: Request, res: Response) {
+    const userChats = await UserChat.find({});
+    const userChatId = userChats.length === 0 ? 1 : userChats[userChats.length - 1].userChatId + 1;
+    const userChatId2 = userChatId + 1;
     const chats = await Chat.find({});
     const chatId = chats.length === 0 ? 1 : chats[chats.length - 1].chatId + 1;
     const title = req.body.title;
-    const user = req.body.user;
-    const friend = req.body.friend;
+    const incomingUser = req.body.user;
+    const user = await User.findOne({ username: incomingUser })
+    const incomingFriend = req.body.friend;
+    const friend = await User.findOne({ username: incomingFriend })
     await Chat.create({ title, chatId });
-    await Chat.updateOne({ chatId: chatId }, { $push: { users: user } });
-    await Chat.updateOne({ chatId: chatId }, { $push: { users: friend } });
-    const chat = await Chat.findOne({ chatId: chatId });
-    await User.updateOne({ username: user }, { $push: { chats: chat } });
-    await User.updateOne({ username: friend }, { $push: { chats: chat } });
+    await UserChat.create({ userId: user.userId, chatId, userChatId });
+    await UserChat.create({ userId: friend.userId, chatId, userChatId: userChatId2 });
     res.status(200).json({ success: true, message: "Chat added successfully!" });
+}
+
+export async function getChats(req: Request, res: Response) {
+    const userId = req.params.userId;
+    const userChats = await UserChat.find({ userId: parseInt(userId) });
+    const requestedChats = userChats.map(async (chat) => {
+        return await Chat.findOne({ chatId: chat.chatId });
+    });
+    const chats = await Promise.all(requestedChats);
+    res.json(chats);
 }
 
 export async function getChat(req: Request, res: Response) {
@@ -163,7 +176,7 @@ export async function getMessages(req: Request, res: Response) {
 export async function updateMessage(req: Request, res: Response) {
     const messageId = req.params.messageId;
     const content = req.body.content
-    const message = await Message.findOneAndUpdate({messageId},{content})
+    const message = await Message.findOneAndUpdate({ messageId }, { content })
     res.status(200).json({ success: true });
 }
 

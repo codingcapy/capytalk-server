@@ -18,7 +18,6 @@ const UserSchema = new mongoose.Schema({
     active: { type: Boolean, required: true, default: true },
     userId: { type: Number, required: [true, 'userId is required'] },
     friends: [String],
-    chats: [ChatSchema],
     blocked: [String]
 });
 
