@@ -7,7 +7,6 @@ description: user model schema for CapyTalk API server
  */
 
 import mongoose from "mongoose";
-import { ChatSchema } from "./Chat";
 
 const UserSchema = new mongoose.Schema({
     username: { type: String, required: [true, 'username is required'], trim: true, maxlength: [80, 'username char limit is 80'] },

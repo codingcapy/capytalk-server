@@ -3,7 +3,7 @@
 author: Paul Kim
 date: February 8, 2024
 version: 1.0
-description: user model schema for CapyTalk API server
+description: user-friend bridging table model schema for CapyTalk API server
  */
 
 import mongoose from "mongoose";

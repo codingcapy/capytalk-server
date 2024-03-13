@@ -126,7 +126,6 @@ export async function getFriends(req: Request, res: Response) {
         return await User.findOne({ userId: userFriend.friendId }).lean();
     });
     const friends = await Promise.all(userPromises);
-    console.log(friends)
     res.json(friends);
 }
 
