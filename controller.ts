@@ -171,9 +171,16 @@ export async function getChat(req: Request, res: Response) {
     res.json(chat);
 }
 
-export function updateChat() {
-
-
+export async function leaveChat(req: Request, res: Response) {
+    const userId = req.body.userId;
+    const chatId = req.body.chatId;
+    await UserChat.findOneAndDelete({ userId, chatId })
+    const userChat = await UserChat.find({ chatId })
+    if (userChat.length === 0) {
+        await Chat.findOneAndDelete({ chatId })
+        await Message.deleteMany({chatId})
+    }
+    res.status(200).json({ success: true });
 }
 
 export async function createMessage(req: Request, res: Response) {
