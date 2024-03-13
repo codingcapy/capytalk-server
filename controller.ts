@@ -14,6 +14,7 @@ import Chat from "./models/Chat";
 import Message from "./models/Message";
 import Comment from "./models/Comment";
 import UserChat from "./models/UserChat";
+import UserFriend from "./models/UserFriend";
 
 const saltRounds = 6;
 
@@ -71,9 +72,15 @@ export async function createUser(req: Request, res: Response) {
     }
     else {
         const encrypted = await bcrypt.hash(password, saltRounds);
-        const user = await User.create({ username: username, password: encrypted, email, displayName, userId: userId });
+        const user = await User.create({ username, password: encrypted, email, displayName, userId });
         res.status(200).json({ success: true, message: "Sign up successful!" });
     }
+}
+
+export async function getUser(req: Request, res: Response) {
+    const userId = req.params.userId;
+    const user = await User.findOne({ userId: parseInt(userId) });
+    res.json(user);
 }
 
 export async function updateUser(req: Request, res: Response) {
@@ -90,28 +97,46 @@ export async function updateUser(req: Request, res: Response) {
 }
 
 export async function addFriend(req: Request, res: Response) {
-    const inputUser = req.body.username;
-    const user = await User.findOne({ username: inputUser });
     const inputFriend = req.body.friend;
     const friend = await User.findOne({ username: inputFriend });
     if (!friend) {
         return res.json({ success: false, message: "User does not exist" });
     }
-    if (user.friends.includes(friend.username)) {
+    const inputUser = req.body.username;
+    const user = await User.findOne({ username: inputUser });
+    const userFriend = await UserFriend.findOne({ userId: user.userId, friendId: friend.userId })
+    if (userFriend) {
         return res.json({ success: false, message: "User is already your friend!" });
     }
-    if (inputUser == inputFriend) {
+    if (inputFriend == user.username) {
         return res.json({ success: false, message: "That's yourself!" });
     }
-    await User.updateOne({ username: inputUser }, { $push: { friends: friend.username } });
-    await User.updateOne({ username: inputFriend }, { $push: { friends: user.username } });
+    const userFriends = await UserFriend.find({})
+    const userFriendId = userFriends.length === 0 ? 1 : userFriends[userFriends.length - 1].userFriendId + 1;
+    const userFriendId2 = userFriendId + 1;
+    await UserFriend.create({ userId: user.userId, friendId: friend.userId, userFriendId });
+    await UserFriend.create({ userId: friend.userId, friendId: user.userId, userFriendId: userFriendId2 });
     res.status(200).json({ success: true, message: "Friend added successfully!" });
 }
 
-export async function getUser(req: Request, res: Response) {
+export async function getFriends(req: Request, res: Response) {
     const userId = req.params.userId;
-    const user = await User.findOne({ userId: parseInt(userId) });
-    res.json(user);
+    const userFriends = await UserFriend.find({ userId: parseInt(userId) });
+    const userPromises = userFriends.map(async (userFriend) => {
+        return await User.findOne({ userId: userFriend.friendId }).lean();
+    });
+    const friends = await Promise.all(userPromises);
+    console.log(friends)
+    res.json(friends);
+}
+
+export async function blockFriend(req: Request, res: Response) {
+    const inputFriend = req.body.friend;
+    const friend = await User.findOne({ username: inputFriend });
+    const inputUser = req.body.user;
+    const user = await User.findOne({ username: inputUser });
+    const userFriend = await UserFriend.findOneAndUpdate({ userId: user.userId, friendId: friend.userId }, { blocked: true })
+    res.status(200).json({ success: true, message: "Friend added successfully!" });
 }
 
 export async function createChat(req: Request, res: Response) {
