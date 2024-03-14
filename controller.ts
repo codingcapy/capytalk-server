@@ -78,22 +78,34 @@ export async function createUser(req: Request, res: Response) {
 }
 
 export async function getUser(req: Request, res: Response) {
-    const userId = req.params.userId;
-    const user = await User.findOne({ userId: parseInt(userId) });
-    res.json(user);
+    try {
+        const userId = req.params.userId;
+        const user = await User.findOne({ userId: parseInt(userId) });
+        res.status(200).json(user);
+    }
+    catch (err) {
+        console.log(err);
+        res.status(400).json({ success: false, message: "Error getting user" });
+    }
 }
 
 export async function updateUser(req: Request, res: Response) {
-    const userId = parseInt(req.params.userId)
-    const incomingUser = await req.body;
-    const incomingPassword = incomingUser.password
-    const encrypted = await bcrypt.hash(incomingPassword, saltRounds)
-    const updatedUser = await User.findOneAndUpdate(
-        { userId: userId },
-        { username: incomingUser.username, password: encrypted, userId: incomingUser.userId },
-        { new: true }
-    );
-    res.status(200).json({ success: true });
+    try {
+        const userId = parseInt(req.params.userId);
+        const incomingUser = await req.body;
+        const incomingPassword = incomingUser.password;
+        const encrypted = await bcrypt.hash(incomingPassword, saltRounds);
+        const updatedUser = await User.findOneAndUpdate(
+            { userId: userId },
+            { username: incomingUser.username, password: encrypted, userId: incomingUser.userId },
+            { new: true }
+        );
+        res.status(200).json({ success: true });
+    }
+    catch (err) {
+        console.log(err);
+        res.status(400).json({ success: false, message: "Updating user" });
+    }
 }
 
 export async function addFriend(req: Request, res: Response) {
@@ -120,67 +132,103 @@ export async function addFriend(req: Request, res: Response) {
 }
 
 export async function getFriends(req: Request, res: Response) {
-    const userId = req.params.userId;
-    const userFriends = await UserFriend.find({ userId: parseInt(userId) });
-    const userPromises = userFriends.map(async (userFriend) => {
-        return await User.findOne({ userId: userFriend.friendId }).lean();
-    });
-    const friends = await Promise.all(userPromises);
-    res.json(friends);
+    try {
+        const userId = req.params.userId;
+        const userFriends = await UserFriend.find({ userId: parseInt(userId) });
+        const userPromises = userFriends.map(async (userFriend) => {
+            return await User.findOne({ userId: userFriend.friendId }).lean();
+        });
+        const friends = await Promise.all(userPromises);
+        res.status(200).json(friends);
+    }
+    catch (err) {
+        console.log(err);
+        res.status(400).json({ success: false, message: "Error getting friends" });
+    }
 }
 
 export async function blockFriend(req: Request, res: Response) {
-    const inputFriend = req.body.friend;
-    const friend = await User.findOne({ username: inputFriend });
-    const inputUser = req.body.user;
-    const user = await User.findOne({ username: inputUser });
-    const userFriend = await UserFriend.findOneAndUpdate({ userId: user.userId, friendId: friend.userId }, { blocked: true })
-    res.status(200).json({ success: true, message: "Friend added successfully!" });
+    try {
+        const inputFriend = req.body.friend;
+        const friend = await User.findOne({ username: inputFriend });
+        const inputUser = req.body.user;
+        const user = await User.findOne({ username: inputUser });
+        const userFriend = await UserFriend.findOneAndUpdate({ userId: user.userId, friendId: friend.userId }, { blocked: true })
+        res.status(200).json({ success: true, message: "Friend added successfully!" });
+    }
+    catch (err) {
+        console.log(err);
+        res.status(400).json({ success: false, message: "Error blocking friend" });
+    }
 }
 
 export async function createChat(req: Request, res: Response) {
-    const userChats = await UserChat.find({});
-    const userChatId = userChats.length === 0 ? 1 : userChats[userChats.length - 1].userChatId + 1;
-    const userChatId2 = userChatId + 1;
-    const chats = await Chat.find({});
-    const chatId = chats.length === 0 ? 1 : chats[chats.length - 1].chatId + 1;
-    const title = req.body.title;
-    const incomingUser = req.body.user;
-    const user = await User.findOne({ username: incomingUser })
-    const incomingFriend = req.body.friend;
-    const friend = await User.findOne({ username: incomingFriend })
-    await Chat.create({ title, chatId });
-    await UserChat.create({ userId: user.userId, chatId, userChatId });
-    await UserChat.create({ userId: friend.userId, chatId, userChatId: userChatId2 });
-    res.status(200).json({ success: true, message: "Chat added successfully!" });
+    try {
+        const userChats = await UserChat.find({});
+        const userChatId = userChats.length === 0 ? 1 : userChats[userChats.length - 1].userChatId + 1;
+        const userChatId2 = userChatId + 1;
+        const chats = await Chat.find({});
+        const chatId = chats.length === 0 ? 1 : chats[chats.length - 1].chatId + 1;
+        const title = req.body.title;
+        const incomingUser = req.body.user;
+        const user = await User.findOne({ username: incomingUser })
+        const incomingFriend = req.body.friend;
+        const friend = await User.findOne({ username: incomingFriend })
+        await Chat.create({ title, chatId });
+        await UserChat.create({ userId: user.userId, chatId, userChatId });
+        await UserChat.create({ userId: friend.userId, chatId, userChatId: userChatId2 });
+        res.status(200).json({ success: true, message: "Chat added successfully!" });
+    }
+    catch (err) {
+        console.log(err);
+        res.status(400).json({ success: false, message: "Error creating chat" });
+    }
 }
 
 export async function getChats(req: Request, res: Response) {
-    const userId = req.params.userId;
-    const userChats = await UserChat.find({ userId: parseInt(userId) });
-    const requestedChats = userChats.map(async (chat) => {
-        return await Chat.findOne({ chatId: chat.chatId });
-    });
-    const chats = await Promise.all(requestedChats);
-    res.json(chats);
+    try {
+        const userId = req.params.userId;
+        const userChats = await UserChat.find({ userId: parseInt(userId) });
+        const requestedChats = userChats.map(async (chat) => {
+            return await Chat.findOne({ chatId: chat.chatId });
+        });
+        const chats = await Promise.all(requestedChats);
+        res.status(200).json(chats);
+    }
+    catch (err) {
+        console.log(err);
+        res.status(400).json({ success: false, message: "Error getting chats" });
+    }
 }
 
 export async function getChat(req: Request, res: Response) {
-    const chatId = req.params.chatId;
-    const chat = await Chat.findOne({ chatId: parseInt(chatId) });
-    res.json(chat);
+    try {
+        const chatId = req.params.chatId;
+        const chat = await Chat.findOne({ chatId: parseInt(chatId) });
+        res.status(200).json(chat);
+    }
+    catch (err) {
+        console.log(err);
+        res.status(400).json({ success: false, message: "Error getting chat" });
+    }
 }
 
 export async function leaveChat(req: Request, res: Response) {
-    const userId = req.body.userId;
-    const chatId = req.body.chatId;
-    await UserChat.findOneAndDelete({ userId, chatId })
-    const userChat = await UserChat.find({ chatId })
-    if (userChat.length === 0) {
-        await Chat.findOneAndDelete({ chatId })
-        await Message.deleteMany({chatId})
+    try {
+        const userId = req.body.userId;
+        const chatId = req.body.chatId;
+        await UserChat.findOneAndDelete({ userId, chatId })
+        const userChat = await UserChat.find({ chatId })
+        if (userChat.length === 0) {
+            await Chat.findOneAndDelete({ chatId })
+            await Message.deleteMany({ chatId })
+        }
+        res.status(200).json({ success: true });
     }
-    res.status(200).json({ success: true });
+    catch (err) {
+        console.log(err);
+        res.status(400).json({ success: false, message: "Error leaving chat" });
+    }
 }
 
 export async function createMessage(req: Request, res: Response) {
@@ -195,27 +243,46 @@ export async function createMessage(req: Request, res: Response) {
     }
     catch (err) {
         console.log(err)
+        res.status(400).json({ success: false, message: "Error creating message" });
     }
 }
 
 export async function getMessages(req: Request, res: Response) {
-    const chatId = req.params.chatId;
-    const messages = await Message.find({ chatId: parseInt(chatId) })
-    res.json(messages)
+    try {
+        const chatId = req.params.chatId;
+        const messages = await Message.find({ chatId: parseInt(chatId) })
+        res.status(200).json(messages)
+    }
+    catch (err) {
+        console.log(err);
+        res.status(400).json({ success: false, message: "Error getting messages" });
+    }
 }
 
 export async function updateMessage(req: Request, res: Response) {
-    const messageId = req.params.messageId;
-    const content = req.body.content
-    const message = await Message.findOneAndUpdate({ messageId }, { content })
-    res.status(200).json({ success: true });
+    try {
+        const messageId = req.params.messageId;
+        const content = req.body.content
+        const message = await Message.findOneAndUpdate({ messageId }, { content })
+        res.status(200).json({ success: true });
+    }
+    catch (err) {
+        console.log(err);
+        res.status(400).json({ success: false, message: "Error updating message" });
+    }
 }
 
 export async function createComment(req: Request, res: Response) {
-    const comments = await Comment.find({});
-    const commentId = comments.length === 0 ? 1 : comments[comments.length - 1].commentId + 1;
-    const email = req.body.email;
-    const content = req.body.content;
-    const comment = await Comment.create({ email, content, commentId });
-    res.status(200).json({ success: true });
+    try {
+        const comments = await Comment.find({});
+        const commentId = comments.length === 0 ? 1 : comments[comments.length - 1].commentId + 1;
+        const email = req.body.email;
+        const content = req.body.content;
+        const comment = await Comment.create({ email, content, commentId });
+        res.status(200).json({ success: true });
+    }
+    catch (err) {
+        console.log(err);
+        res.status(400).json({ success: false, message: "Error sending comment" });
+    }
 }
