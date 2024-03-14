@@ -79,10 +79,10 @@ export async function createUser(req: Request, res: Response) {
         const email = req.body.email;
         const displayName = username;
         if (users.find((user: any) => user.username === username.toString())) {
-            res.json({ success: false, message: "Username already exists" });
+            return res.json({ success: false, message: "Username already exists" });
         }
         if (users.find((user: any) => user.email === email.toString())) {
-            res.json({ success: false, message: "An account associated with that email already exists" });
+            return res.json({ success: false, message: "An account associated with that email already exists" });
         }
         else {
             const encrypted = await bcrypt.hash(password, saltRounds);
