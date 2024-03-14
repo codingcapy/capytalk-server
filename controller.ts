@@ -24,17 +24,27 @@ export interface IDecodedUser {
 
 export async function validateUser(req: Request, res: Response) {
     const { username, password } = req.body;
-    const user = await User.findOne({ username: username });
-    if (!user) return res.json({ result: { user: null, token: null } });
-    bcrypt.compare(password, user?.password || "", function (err, result) {
-        if (result === true) {
-            const token = jwt.sign({ id: user?.id }, "secret", { expiresIn: "2days" });
-            res.json({ result: { user, token } });
-        }
-        else {
-            return res.json({ result: { user: null, token: null } });
-        }
-    })
+    try {
+        const user = await User.findOne({ username: username });
+        if (!user) return res.json({ result: { user: null, token: null } });
+        bcrypt.compare(password, user?.password || "", function (err, result) {
+            if (err) {
+                console.log(err);
+                return res.status(500).send("Internal Server Error");
+            }
+            if (result === true) {
+                const token = jwt.sign({ id: user?.id }, "secret", { expiresIn: "2days" });
+                res.json({ result: { user, token } });
+            }
+            else {
+                return res.json({ result: { user: null, token: null } });
+            }
+        })
+    }
+    catch (err2) {
+        console.log(err2);
+        res.status(500).json({ success: false, message: "error during validation" })
+    }
 }
 
 export async function decryptToken(req: Request, res: Response) {
@@ -61,19 +71,28 @@ export async function searchUserById(id: number) {
 }
 
 export async function createUser(req: Request, res: Response) {
-    const users = await User.find({});
-    const userId = users.length === 0 ? 1 : users[users.length - 1].userId + 1;
-    const username = req.body.username;
-    const password = req.body.password;
-    const email = req.body.email;
-    const displayName = username;
-    if (users.find((user: any) => user.username === username.toString())) {
-        res.json({ success: false, message: "Username already exists" });
+    try {
+        const users = await User.find({});
+        const userId = users.length === 0 ? 1 : users[users.length - 1].userId + 1;
+        const username = req.body.username;
+        const password = req.body.password;
+        const email = req.body.email;
+        const displayName = username;
+        if (users.find((user: any) => user.username === username.toString())) {
+            res.json({ success: false, message: "Username already exists" });
+        }
+        if (users.find((user: any) => user.email === email.toString())) {
+            res.json({ success: false, message: "An account associated with that email already exists" });
+        }
+        else {
+            const encrypted = await bcrypt.hash(password, saltRounds);
+            const user = await User.create({ username, password: encrypted, email, displayName, userId });
+            res.status(200).json({ success: true, message: "Sign up successful!" });
+        }
     }
-    else {
-        const encrypted = await bcrypt.hash(password, saltRounds);
-        const user = await User.create({ username, password: encrypted, email, displayName, userId });
-        res.status(200).json({ success: true, message: "Sign up successful!" });
+    catch (err) {
+        console.log(err);
+        res.status(500).json({ success: false, message: "Error creating user" });
     }
 }
 
@@ -85,7 +104,7 @@ export async function getUser(req: Request, res: Response) {
     }
     catch (err) {
         console.log(err);
-        res.status(400).json({ success: false, message: "Error getting user" });
+        res.status(500).json({ success: false, message: "Error getting user" });
     }
 }
 
@@ -104,31 +123,37 @@ export async function updateUser(req: Request, res: Response) {
     }
     catch (err) {
         console.log(err);
-        res.status(400).json({ success: false, message: "Updating user" });
+        res.status(500).json({ success: false, message: "Error updating user" });
     }
 }
 
 export async function addFriend(req: Request, res: Response) {
-    const inputFriend = req.body.friend;
-    const friend = await User.findOne({ username: inputFriend });
-    if (!friend) {
-        return res.json({ success: false, message: "User does not exist" });
+    try {
+        const inputFriend = req.body.friend;
+        const friend = await User.findOne({ username: inputFriend });
+        if (!friend) {
+            return res.json({ success: false, message: "User does not exist" });
+        }
+        const inputUser = req.body.username;
+        const user = await User.findOne({ username: inputUser });
+        const userFriend = await UserFriend.findOne({ userId: user.userId, friendId: friend.userId })
+        if (userFriend) {
+            return res.json({ success: false, message: "User is already your friend!" });
+        }
+        if (inputFriend == user.username) {
+            return res.json({ success: false, message: "That's yourself!" });
+        }
+        const userFriends = await UserFriend.find({})
+        const userFriendId = userFriends.length === 0 ? 1 : userFriends[userFriends.length - 1].userFriendId + 1;
+        const userFriendId2 = userFriendId + 1;
+        await UserFriend.create({ userId: user.userId, friendId: friend.userId, userFriendId });
+        await UserFriend.create({ userId: friend.userId, friendId: user.userId, userFriendId: userFriendId2 });
+        res.status(200).json({ success: true, message: "Friend added successfully!" });
     }
-    const inputUser = req.body.username;
-    const user = await User.findOne({ username: inputUser });
-    const userFriend = await UserFriend.findOne({ userId: user.userId, friendId: friend.userId })
-    if (userFriend) {
-        return res.json({ success: false, message: "User is already your friend!" });
+    catch (err) {
+        console.log(err);
+        res.status(500).json({ success: false, message: "Error adding friend" });
     }
-    if (inputFriend == user.username) {
-        return res.json({ success: false, message: "That's yourself!" });
-    }
-    const userFriends = await UserFriend.find({})
-    const userFriendId = userFriends.length === 0 ? 1 : userFriends[userFriends.length - 1].userFriendId + 1;
-    const userFriendId2 = userFriendId + 1;
-    await UserFriend.create({ userId: user.userId, friendId: friend.userId, userFriendId });
-    await UserFriend.create({ userId: friend.userId, friendId: user.userId, userFriendId: userFriendId2 });
-    res.status(200).json({ success: true, message: "Friend added successfully!" });
 }
 
 export async function getFriends(req: Request, res: Response) {
@@ -143,7 +168,7 @@ export async function getFriends(req: Request, res: Response) {
     }
     catch (err) {
         console.log(err);
-        res.status(400).json({ success: false, message: "Error getting friends" });
+        res.status(500).json({ success: false, message: "Error getting friends" });
     }
 }
 
@@ -158,7 +183,7 @@ export async function blockFriend(req: Request, res: Response) {
     }
     catch (err) {
         console.log(err);
-        res.status(400).json({ success: false, message: "Error blocking friend" });
+        res.status(500).json({ success: false, message: "Error blocking friend" });
     }
 }
 
@@ -181,7 +206,7 @@ export async function createChat(req: Request, res: Response) {
     }
     catch (err) {
         console.log(err);
-        res.status(400).json({ success: false, message: "Error creating chat" });
+        res.status(500).json({ success: false, message: "Error creating chat" });
     }
 }
 
@@ -197,7 +222,7 @@ export async function getChats(req: Request, res: Response) {
     }
     catch (err) {
         console.log(err);
-        res.status(400).json({ success: false, message: "Error getting chats" });
+        res.status(500).json({ success: false, message: "Error getting chats" });
     }
 }
 
@@ -209,7 +234,7 @@ export async function getChat(req: Request, res: Response) {
     }
     catch (err) {
         console.log(err);
-        res.status(400).json({ success: false, message: "Error getting chat" });
+        res.status(500).json({ success: false, message: "Error getting chat" });
     }
 }
 
@@ -227,7 +252,7 @@ export async function leaveChat(req: Request, res: Response) {
     }
     catch (err) {
         console.log(err);
-        res.status(400).json({ success: false, message: "Error leaving chat" });
+        res.status(500).json({ success: false, message: "Error leaving chat" });
     }
 }
 
@@ -243,7 +268,7 @@ export async function createMessage(req: Request, res: Response) {
     }
     catch (err) {
         console.log(err)
-        res.status(400).json({ success: false, message: "Error creating message" });
+        res.status(500).json({ success: false, message: "Error creating message" });
     }
 }
 
@@ -255,7 +280,7 @@ export async function getMessages(req: Request, res: Response) {
     }
     catch (err) {
         console.log(err);
-        res.status(400).json({ success: false, message: "Error getting messages" });
+        res.status(500).json({ success: false, message: "Error getting messages" });
     }
 }
 
@@ -268,7 +293,7 @@ export async function updateMessage(req: Request, res: Response) {
     }
     catch (err) {
         console.log(err);
-        res.status(400).json({ success: false, message: "Error updating message" });
+        res.status(500).json({ success: false, message: "Error updating message" });
     }
 }
 
@@ -283,6 +308,6 @@ export async function createComment(req: Request, res: Response) {
     }
     catch (err) {
         console.log(err);
-        res.status(400).json({ success: false, message: "Error sending comment" });
+        res.status(500).json({ success: false, message: "Error sending comment" });
     }
 }
