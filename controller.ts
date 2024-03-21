@@ -146,8 +146,10 @@ export async function addFriend(req: Request, res: Response) {
         const userFriends = await UserFriend.find({})
         const userFriendId = userFriends.length === 0 ? 1 : userFriends[userFriends.length - 1].userFriendId + 1;
         const userFriendId2 = userFriendId + 1;
-        await UserFriend.create({ userId: user.userId, friendId: friend.userId, userFriendId });
-        await UserFriend.create({ userId: friend.userId, friendId: user.userId, userFriendId: userFriendId2 });
+        const displayName = friend.username;
+        const displayName2 = user.username;
+        await UserFriend.create({ userId: user.userId, friendId: friend.userId, userFriendId, displayName });
+        await UserFriend.create({ userId: friend.userId, friendId: user.userId, userFriendId: userFriendId2, displayName: displayName2 });
         res.status(200).json({ success: true, message: "Friend added successfully!" });
     }
     catch (err) {
@@ -260,10 +262,12 @@ export async function createMessage(req: Request, res: Response) {
     const inputContent = req.body.content;
     const user = req.body.user;
     const chatId = req.body.chatId;
+    const replyContent = req.body.replyContent;
+    const replyUsername = req.body.replyUsername;
     const messages = await Message.find({});
     const messageId = messages.length === 0 ? 1 : messages[messages.length - 1].messageId + 1;
     try {
-        await Message.create({ content: inputContent, username: user, chatId: parseInt(chatId), messageId });
+        await Message.create({ content: inputContent, replyContent, replyUsername, username: user, chatId: parseInt(chatId), messageId });
         res.status(200).json({ success: true, message: "Message added successfully!" });
     }
     catch (err) {

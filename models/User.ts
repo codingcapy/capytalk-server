@@ -12,7 +12,7 @@ const UserSchema = new mongoose.Schema({
     username: { type: String, required: [true, 'username is required'], trim: true, maxlength: [32, 'username char limit is 32'] },
     password: { type: String, required: [true, 'password is required'], maxlength: [80, 'password char limit is 80'] },
     email: { type: String, required: [true, 'email is required'], maxlength: [255, 'email char limit is 255'] },
-    displayName: { type: String, required: [true, 'displayName is required'], maxlength: [128, 'displayName char limit is 32'] },
+    displayName: { type: String, required: [true, 'displayName is required'], maxlength: [32, 'displayName char limit is 32'] },
     date: { type: Date, required: true, default: Date.now },
     active: { type: Boolean, required: true, default: true },
     userId: { type: Number, required: [true, 'userId is required'] },
